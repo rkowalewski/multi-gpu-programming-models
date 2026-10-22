@@ -263,6 +263,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+#pragma omp barrier
         for (int i = 0; i < 4; ++i) {
             CUDA_RT_CALL(cudaMemcpyAsync(a_new[top] + (iy_end[top] * nx),
                                          a_new[dev_id] + iy_start * nx, nx * sizeof(real),
