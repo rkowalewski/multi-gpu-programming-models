@@ -8,8 +8,9 @@ GENCODE_SM52	:= -gencode arch=compute_52,code=sm_52
 GENCODE_SM60	:= -gencode arch=compute_60,code=sm_60
 GENCODE_SM70	:= -gencode arch=compute_70,code=sm_70
 GENCODE_SM80    := -gencode arch=compute_80,code=sm_80
-GENCODE_SM90    := -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90
-GENCODE_FLAGS	:= $(GENCODE_SM70) $(GENCODE_SM80) $(GENCODE_SM90)
+GENCODE_SM90    := -gencode arch=compute_90,code=sm_90
+GENCODE_SM100   := -gencode arch=compute_100,code=sm_100 -gencode arch=compute_100,code=compute_100
+GENCODE_FLAGS	:= $(GENCODE_SM80) $(GENCODE_SM90) $(GENCODE_SM100)
 ifdef BUILD_SM_ARCH
 	GENCODE_FLAGS	:= $(GENCODE_SM$(BUILD_SM_ARCH))
 endif
@@ -18,7 +19,7 @@ ifdef DISABLE_CUB
 else
         NVCC_FLAGS = -DHAVE_CUB
 endif
-NVCC_FLAGS += -Xcompiler -fopenmp -lineinfo -DUSE_NVTX -ldl $(GENCODE_FLAGS) -std=c++14
+NVCC_FLAGS += -Xcompiler -fopenmp -lineinfo -DUSE_NVTX -ldl $(GENCODE_FLAGS) -std=c++17
 jacobi: Makefile jacobi.cu
 	$(NVCC) $(NVCC_FLAGS) jacobi.cu -o jacobi
 

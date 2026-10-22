@@ -13,8 +13,9 @@ GENCODE_SM52	:= -gencode arch=compute_52,code=sm_52
 GENCODE_SM60    := -gencode arch=compute_60,code=sm_60
 GENCODE_SM70    := -gencode arch=compute_70,code=sm_70
 GENCODE_SM80    := -gencode arch=compute_80,code=sm_80
-GENCODE_SM90    := -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90
-GENCODE_FLAGS	:= $(GENCODE_SM70) $(GENCODE_SM80) $(GENCODE_SM90)
+GENCODE_SM90    := -gencode arch=compute_90,code=sm_90
+GENCODE_SM100   := -gencode arch=compute_100,code=sm_100 -gencode arch=compute_100,code=compute_100
+GENCODE_FLAGS	:= $(GENCODE_SM80) $(GENCODE_SM90) $(GENCODE_SM100)
 ifdef BUILD_SM_ARCH
 	GENCODE_FLAGS	:= $(GENCODE_SM$(BUILD_SM_ARCH))
 endif
@@ -23,8 +24,8 @@ ifdef DISABLE_CUB
 else
         NVCC_FLAGS = -DHAVE_CUB
 endif
-NVCC_FLAGS += -lineinfo $(GENCODE_FLAGS) -std=c++14
-MPICXX_FLAGS = -DUSE_NVTX -I$(CUDA_HOME)/include -I$(NCCL_HOME)/include -std=c++14
+NVCC_FLAGS += -lineinfo $(GENCODE_FLAGS) -std=c++17
+MPICXX_FLAGS = -DUSE_NVTX -I$(CUDA_HOME)/include -I$(NCCL_HOME)/include -std=c++17
 LD_FLAGS = -L$(CUDA_HOME)/lib64 -L$(NCCL_HOME)/lib -lcudart -ldl -lnccl
 jacobi: Makefile jacobi.cpp jacobi_kernels.o
 	$(MPICXX) $(MPICXX_FLAGS) jacobi.cpp jacobi_kernels.o $(LD_FLAGS) -o jacobi

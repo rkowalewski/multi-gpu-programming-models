@@ -14,13 +14,15 @@ GENCODE_SM52	:= -gencode arch=compute_52,code=sm_52
 GENCODE_SM60    := -gencode arch=compute_60,code=sm_60
 GENCODE_SM70    := -gencode arch=compute_70,code=sm_70
 GENCODE_SM80    := -gencode arch=compute_80,code=sm_80
-GENCODE_SM90    := -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90
+GENCODE_SM90    := -gencode arch=compute_90,code=sm_90
+GENCODE_SM100   := -gencode arch=compute_100,code=sm_100 -gencode arch=compute_100,code=compute_100
 ifdef USE_LTO
-	GENCODE_SM70 += -gencode arch=compute_70,code=lto_70
-	GENCODE_SM80 += -gencode arch=compute_80,code=lto_80
-	GENCODE_SM90 += -gencode arch=compute_90,code=lto_90
+	GENCODE_SM70  += -gencode arch=compute_70,code=lto_70
+	GENCODE_SM80  += -gencode arch=compute_80,code=lto_80
+	GENCODE_SM90  += -gencode arch=compute_90,code=lto_90
+	GENCODE_SM100 += -gencode arch=compute_100,code=lto_100
 endif
-GENCODE_FLAGS	:= $(GENCODE_SM70) $(GENCODE_SM80) $(GENCODE_SM90)
+GENCODE_FLAGS	:= $(GENCODE_SM80) $(GENCODE_SM90) $(GENCODE_SM100)
 ifdef BUILD_SM_ARCH
 	GENCODE_FLAGS	:= $(GENCODE_SM$(BUILD_SM_ARCH))
 endif
@@ -31,7 +33,7 @@ else
         NVCC_FLAGS = -DHAVE_CUB
 endif
 NVCC_FLAGS += -ccbin=mpic++ -dc -Xcompiler -fopenmp -lineinfo -DUSE_NVTX -ldl $(GENCODE_FLAGS) -std=c++17 -I$(NVSHMEM_HOME)/include
-NVCC_LDFLAGS = -ccbin=mpic++ -L$(NVSHMEM_HOME)/lib -lnvshmem -L$(CUDA_HOME)/lib64 -lcuda -lcudart -ldl -lnvidia-ml
+NVCC_LDFLAGS = -ccbin=mpic++ -L$(NVSHMEM_HOME)/lib -lnvshmem_host -lnvshmem_device -L$(CUDA_HOME)/lib64 -lcuda -lcudart -ldl -lnvidia-ml
 ifdef USE_LTO
 	NVCC_FLAGS += -maxrregcount=32
 	NVCC_LDFLAGS += -maxrregcount=32 -dlto
