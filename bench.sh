@@ -237,6 +237,15 @@ fi
 
 if true; then
 
+    for (( NUM_GPUS=1; NUM_GPUS <= ${MAX_NUM_GPUS}; NUM_GPUS+=1 )); do
+        export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES_SETTING[${NUM_GPUS}]}
+        find_best mpirun ${MPIRUN_ARGS} -np ${NUM_GPUS} -x CUDA_VISIBLE_DEVICES "${MPI_CPU_BINDING_OPT[@]}" ./nccl_device/jacobi -csv -nx ${NXNY} -ny ${NXNY}
+    done
+
+fi
+
+if true; then
+
     export NVSHMEM_SYMMETRIC_SIZE=3690987520
     for (( NUM_GPUS=1; NUM_GPUS <= ${MAX_NUM_GPUS}; NUM_GPUS+=1 )); do
         export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES_SETTING[${NUM_GPUS}]}

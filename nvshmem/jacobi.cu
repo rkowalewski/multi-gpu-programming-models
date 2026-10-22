@@ -453,7 +453,7 @@ int main(int argc, char* argv[]) {
 
     constexpr int dim_block_x = 32;
     constexpr int dim_block_y = 32;
-    dim3 dim_grid((nx + dim_block_x - 1) / dim_block_x,
+    dim3 dim_grid((nx - 2 + dim_block_x - 1) / dim_block_x,
                   (chunk_size + dim_block_y - 1) / dim_block_y, 1);
     constexpr int dim_block_block_comm_x = 1024;
     constexpr int dim_block_block_comm_y = 1;
