@@ -30,7 +30,7 @@ Some examples in this repository are the basis for an interactive tutorial: [FZJ
 * MPI: The `mpi` and `mpi_overlap` variants require a CUDA-aware[^1] implementation. For NVSHMEM, NCCL and `multi_node_p2p`, a non CUDA-aware MPI is sufficient. The examples have been developed and tested with OpenMPI.
 * NVSHMEM (version 0.4.1 or later): Required by the NVSHMEM variant.
 * NCCL (version 2.8 or later): Required by the NCCL variant
-  * `nccl_device` requires NCCL 2.28 or later with device API support. GIN additionally requires a supported network.
+  * `nccl_device` requires NCCL 2.31 or later with device API support. GIN additionally requires a supported network.
 
 # Building 
 Each variant comes with a `Makefile` and can be built by simply issuing `make`, e.g. 
@@ -48,7 +48,7 @@ multi-gpu-programming-models/multi_threaded_copy$ export BUILD_SM_ARCH=90
 multi-gpu-programming-models/multi_threaded_copy$ make
 nvcc -DHAVE_CUB -Xcompiler -fopenmp -lineinfo -DUSE_NVTX -ldl -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90 -std=c++14 jacobi.cu -o jacobi
 ```
-Currently supported values for `BUILD_SM_ARCH` are `30`, `35`, `37`, `50`, `52`, `60`, `70`, `80`, `90`.
+Currently supported values for `BUILD_SM_ARCH` are `80`, `90`, `100`.
 
 # Run instructions
 All variants have the following command line options
