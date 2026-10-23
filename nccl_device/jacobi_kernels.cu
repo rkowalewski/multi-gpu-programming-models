@@ -120,7 +120,7 @@ void launch_jacobi_kernel(real* __restrict__ const a_new, const real* __restrict
 
 // Returns true if peer (a world rank) is reached with GIN and false if it is reached with plain
 // loads and stores through the LSA domain (e.g. NVLink).
-__host__ __device__ bool use_gin_for_peer(const ncclDevComm& devComm, const int peer,
+__device__ bool use_gin_for_peer(const ncclDevComm& devComm, const int peer,
                                           const bool force_gin) {
     return force_gin || !ncclTeamRankIsMember(ncclTeamLsa(devComm), ncclTeamWorld(devComm), peer);
 }
@@ -231,17 +231,22 @@ __global__ void syncneighborhood_kernel(const __grid_constant__ ncclDevComm devC
     }
 }
 
+bool use_gin_for_peer(const ncclComm_t comm, const int peer,
+                                             const bool force_gin) {
+    return force_gin || !ncclTeamRankIsMember(ncclTeamLsa(comm), ncclTeamWorld(comm), peer);
+}
+
 // The GIN code needs more registers, which lowers the occupancy of the whole kernel, so it is
 // only compiled into the kernels if a neighbor is reached with GIN.
-bool use_gin(const ncclDevComm& devComm, const int top_rank, const int bottom_rank,
+bool use_gin(const ncclComm_t comm, const int top_rank, const int bottom_rank,
              const bool force_gin) {
-    return use_gin_for_peer(devComm, top_rank, force_gin) ||
-           use_gin_for_peer(devComm, bottom_rank, force_gin);
+    return use_gin_for_peer(comm, top_rank, force_gin) ||
+           use_gin_for_peer(comm, bottom_rank, force_gin);
 }
 
 void launch_jacobi_block_comm_kernel(real* __restrict__ const a_new, const real* __restrict__ const a,
                           real* __restrict__ const l2_norm, const int iy_start, const int iy_end,
-                          const int nx, const bool calculate_norm, const ncclDevComm& devComm,
+                          const int nx, const bool calculate_norm, const ncclDevComm& devComm, const ncclComm_t comm,
                           ncclWindow_t a_new_win, const int top_rank, const int top_iy,
                           const int bottom_rank, const int bottom_iy, const bool force_gin,
                           cudaStream_t stream) {
@@ -249,7 +254,7 @@ void launch_jacobi_block_comm_kernel(real* __restrict__ const a_new, const real*
     constexpr int dim_block_y = 1;
     dim3 dim_grid((nx - 2 + dim_block_x - 1) / dim_block_x,
                   ((iy_end - iy_start) + dim_block_y - 1) / dim_block_y, 1);
-    auto kernel = use_gin(devComm, top_rank, bottom_rank, force_gin)
+    auto kernel = use_gin(comm, top_rank, bottom_rank, force_gin)
                       ? jacobi_block_comm_kernel<dim_block_x, dim_block_y, true>
                       : jacobi_block_comm_kernel<dim_block_x, dim_block_y, false>;
     kernel<<<dim_grid, {dim_block_x, dim_block_y, 1}, 0, stream>>>(
@@ -258,10 +263,10 @@ void launch_jacobi_block_comm_kernel(real* __restrict__ const a_new, const real*
     CUDA_RT_CALL(cudaGetLastError());
 }
 
-void launch_syncneighborhood_kernel(const ncclDevComm& devComm, const int top_rank,
+void launch_syncneighborhood_kernel(const ncclDevComm& devComm, const ncclComm_t comm, const int top_rank,
                                     const int bottom_rank, const bool force_gin,
                                     cudaStream_t stream) {
-    auto kernel = use_gin(devComm, top_rank, bottom_rank, force_gin)
+    auto kernel = use_gin(comm, top_rank, bottom_rank, force_gin)
                       ? syncneighborhood_kernel<true>
                       : syncneighborhood_kernel<false>;
     kernel<<<1, 32, 0, stream>>>(devComm, top_rank, bottom_rank, force_gin);

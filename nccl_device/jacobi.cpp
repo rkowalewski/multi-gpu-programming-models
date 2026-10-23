@@ -137,12 +137,12 @@ void launch_jacobi_kernel(real* __restrict__ const a_new, const real* __restrict
 
 void launch_jacobi_block_comm_kernel(real* __restrict__ const a_new, const real* __restrict__ const a,
                           real* __restrict__ const l2_norm, const int iy_start, const int iy_end,
-                          const int nx, const bool calculate_norm, const ncclDevComm& devComm,
+                          const int nx, const bool calculate_norm, const ncclDevComm& devComm, const ncclComm_t comm,
                           ncclWindow_t a_new_win, const int top_rank, const int top_iy,
                           const int bottom_rank, const int bottom_iy, const bool force_gin,
                           cudaStream_t stream);
 
-void launch_syncneighborhood_kernel(const ncclDevComm& devComm, const int top_rank,
+void launch_syncneighborhood_kernel(const ncclDevComm& devComm, const ncclComm_t comm, const int top_rank,
                                     const int bottom_rank, const bool force_gin,
                                     cudaStream_t stream);
 
@@ -238,17 +238,20 @@ int main(int argc, char* argv[]) {
 
     ncclDevComm nccl_dev_comm;
     {
-        ncclDevCommRequirements_t reqs = NCCL_DEV_COMM_REQUIREMENTS_INITIALIZER;
-        reqs.lsaBarrierCount = 1;
-        reqs.ginSignalCount = 1;
-        NCCL_CALL(ncclDevCommCreate(nccl_comm, &reqs, &nccl_dev_comm));
-        if (force_gin && NCCL_GIN_TYPE_NONE == nccl_props.ginType) {
+        if (force_gin && NCCL_GIN_TYPE_NONE == nccl_props.ginConnectionType) {
             fprintf(stderr,"ERROR -force_gin requires GIN support, which is not available.\n");
             NCCL_CALL(ncclDevCommDestroy(nccl_comm, &nccl_dev_comm));
             NCCL_CALL(ncclCommDestroy(nccl_comm));
             MPI_CALL(MPI_Finalize());
             return 1;
         }
+        ncclDevCommRequirements_t reqs = NCCL_DEV_COMM_REQUIREMENTS_INITIALIZER;
+        reqs.lsaBarrierCount = 1;
+        if (NCCL_GIN_CONNECTION_FULL == nccl_props.ginConnectionType) {
+            reqs.ginSignalCount = 1;
+            reqs.ginConnectionType = NCCL_GIN_CONNECTION_FULL;
+        }
+        NCCL_CALL(ncclDevCommCreate(nccl_comm, &reqs, &nccl_dev_comm));
     }
 
     real* a_ref_h;
@@ -324,7 +327,7 @@ int main(int argc, char* argv[]) {
 
     PUSH_RANGE("NCCL_Warmup", 5)
     for (int i = 0; i < 10; ++i) {
-        launch_syncneighborhood_kernel(nccl_dev_comm, top, bottom, force_gin, compute_stream);
+        launch_syncneighborhood_kernel(nccl_dev_comm, nccl_comm, top, bottom, force_gin, compute_stream);
     }
     CUDA_RT_CALL(cudaStreamSynchronize(compute_stream));
     POP_RANGE
@@ -353,7 +356,7 @@ int main(int argc, char* argv[]) {
 
         // Computes the new values and applies periodic boundary conditions
         launch_jacobi_block_comm_kernel(a_new, a, l2_norm_d, iy_start, iy_end, nx, calculate_norm,
-                                        nccl_dev_comm, a_new_win, top, iy_end_top, bottom,
+                                        nccl_dev_comm, nccl_comm, a_new_win, top, iy_end_top, bottom,
                                         iy_start_bottom, force_gin, compute_stream);
         CUDA_RT_CALL(cudaEventRecord(compute_done, compute_stream));
 
@@ -363,7 +366,7 @@ int main(int argc, char* argv[]) {
         }
 
         PUSH_RANGE("NCCL_SYNC", 5)
-        launch_syncneighborhood_kernel(nccl_dev_comm, top, bottom, force_gin, compute_stream);
+        launch_syncneighborhood_kernel(nccl_dev_comm, nccl_comm, top, bottom, force_gin, compute_stream);
         POP_RANGE
 
         if (calculate_norm) {
